@@ -9,10 +9,10 @@
   * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -40,8 +40,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
@@ -51,7 +49,6 @@ TIM_HandleTypeDef htim4;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -59,8 +56,11 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 volatile int button_int=0;	//bandera de la rutina de interrupción
-int cuenta=0;	//determina en qué caso se enciende cada LED
+int cuenta = 0;	//determina en que caso se enciende cada LED
+uint32_t tiempo;
+
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -92,7 +92,7 @@ int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_n
 			else{
 				button_count++;
 			}
-			if (button_count==4){ //Periodo antirebotes
+			if (button_count==4){ //Periodo antirrebotes
 				button_count=0;
 				*button_int=0;
 				return 1;
@@ -132,13 +132,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ADC1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -146,64 +146,87 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  	  	  	  if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
-	  	  	  	  {
-	  	  	  		  if(cuenta==5)
-	  	  	  		  {
-	  	  	  			  cuenta=0;
-	  	  	  		  }
-	  	  	  		  else
-	  	  	  		  {
-	  	  	  			  cuenta++;
-	  	  	  		  }
-	  	  	  	  }
-	  	  	  	switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 ninguno, 1 verde, 2 naranja, 3 rojo, 4 azul y 5 todos.
-	  	  	  		  	  	  {
-	  	  	  		  	  	  case 0:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  	  		  break;
-	  	  	  		  	  	  case 1:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 100);
-	  	  	  		  	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  	  		  break;
-	  	  	  		  	  	  case 2:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 100);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  	  		  break;
-	  	  	  		  	  	  case 3:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		   	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  		 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 100);
-	  	  	  		  		  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  		  	   break;
-	  	  	  		  	  	  case 4:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		   	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  		 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  		  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 100);
-	  	  	  		  	  	  		  break;
-	  	  	  		  	  	  case 5:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 90);
-	  	  	  		   	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 90);
-	  	  	  		  		 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 90);
-	  	  	  		  		  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 90);
-	  	  	  		  	  	  		  break;
-	  	  	  		  	  	  default:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 
-
-	  	  	  		  	  	  }
     /* USER CODE BEGIN 3 */
+	  if(debouncer(&button_int, GPIOA, GPIO_PIN_0))  {
+		  //Al pulsar el botón, cuenta se incrementa hasta que llega a 6 y entonces vuelve a 0
+	 	 if(cuenta==6)
+	 	 {
+	 	  	cuenta=0;
+	 	 }
+	 	 else
+	 	 {
+	 	  	cuenta++;
+	 	 }
+     }
+	  switch(cuenta) {	//Para cada valor de cuenta se enciende el LED...: 0 ninguno, 1 verde, 2 naranja, 3 rojo, 4 azul y 5 todos.
+
+	     case 0: //No se enciende ninguno de los diodos
+		  	    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  	    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  	    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  	  	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		  	    break;
+		 case 1: //Se enciende el diodo LED verde
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 31250); //Se enciende 1s, se apaga 1 s
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+			    break;
+		 case 2: //Se enciende el diodo LED naranja
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 31250);
+				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+			    break;
+		 case 3: //Se enciende el diodo LED rojo
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 31250);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+			    break;
+		 case 4: //Se enciende el diodo LED azul
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 31250);
+			    break;
+		 case 5: //Se encienden todos los diodos
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 31250);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 31250);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 31250);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 31250);
+			    break;
+		 case 6:
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+
+			    //Si el sensor detecta movimiento, se enciende el diodo LED externo durante 5s
+
+			    if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3) == 1) {
+
+			    	tiempo = HAL_GetTick();
+
+			    	while(HAL_GetTick() - tiempo < 5000) {
+			    		//Espera de 5s no bloqueante
+			    		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+			    	}
+			    }
+			    else {
+
+			    	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+			    }
+
+			    break;
+
+		 default:
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	   }
   }
   /* USER CODE END 3 */
 }
@@ -237,64 +260,14 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV4;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
-
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
@@ -319,7 +292,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 16;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 100;
+  htim4.Init.Period = 62500;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -381,10 +354,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
@@ -396,27 +385,6 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
-
-/**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
-
-  /* USER CODE END Callback 1 */
-}
 
 /**
   * @brief  This function is executed in case of error occurrence.
