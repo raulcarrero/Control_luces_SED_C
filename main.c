@@ -77,6 +77,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 }
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+	if (hadc->Instance == ADC1){
+		adcval=(HAL_ADC_GetValue(&hadc1))/2;
+	}
+
+}
+
+
 /*Returns true when the button has been pressed after debounce period*/
 int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number){
 	static uint8_t button_count=0;
@@ -138,7 +146,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  HAL_ADC_Start(&hadc1);
+
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
@@ -149,76 +157,80 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_ADC_Start_IT(&hadc1);
+	  	 	  /*if(adcval>100)
+	  	 	  {
+	  	 		  lum=0;
+	  	 	  }
+	  	 	  else
+	  	 	  {
+	  	 		  lum=100-adcval;
+	  	 	  }*/
+	  	  	  if(adcval>100)	//Acuérdate de conectar 3V a la pata de la resistencia y GND a la del LDR
+	  	  	  {
+	  	  		  lum=100;
+	  	  	  }
+	  	  	  else
+	  	  	  {
+	  	  		  lum=adcval;
+	  	  	  }
+	  	 	 switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
+	  	 	 	  {
+	  	 	 			case 0:
+	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  	 	 	  		  break;
+	  	 	 		  case 1:
+	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
+	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  	 	 			  break;
+	  	 	 	  	  case 2:
+	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  	 	 	  		  break;
+	  	 	 		  case 3:
+	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  	 	 	  		  break;
+	  	 	 		case 4:
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
+	  	 	 				break;
+	  	 	 		case 5:
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
+	  	 	 			  	break;
+	  	 	 	   	  default:
+	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	  	 	 	  	 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  	 	 	  }
+	  	 	if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
+	  	 		  	  	  	  {
+	  	 		  	  	  		  if(cuenta==5)
+	  	 		  	  	  		  {
+	  	 		  	  	  			  cuenta=0;
+	  	 		  	  	  		  }
+	  	 		  	  	  		  else
+	  	 		  	  	  		  {
+	  	 		  	  	  			  cuenta++;
+	  	 		  	  	  		  }
+	  	 		  	  	  	  }//*/
+
     /* USER CODE END WHILE */
-	  HAL_ADC_Start(&hadc1);
-	 	  if(HAL_ADC_PollForConversion(&hadc1, 100)==HAL_OK)
-	 	  {
-	 		  adcval=(HAL_ADC_GetValue(&hadc1))/40;
-	 	  }
-	 	  HAL_ADC_Stop(&hadc1);
-	 	  if(adcval>100)
-	 	  {
-	 		  lum=0;
-	 	  }
-	 	  else
-	 	  {
-	 		  lum=100-adcval;
-	 	  }
-	 	 switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
-	 	 	  {
-	 	 			case 0:
-	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	 	 	  		  break;
-	 	 		  case 1:
-	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
-	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	 	 			  break;
-	 	 	  	  case 2:
-	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
-	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	 	 	  		  break;
-	 	 		  case 3:
-	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
-	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	 	 	  		  break;
-	 	 		case 4:
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
-	 	 				break;
-	 	 		case 5:
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
-	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
-	 	 			  	break;
-	 	 	   	  default:
-	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	 	 	  	 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	 	 	  }
-	 	if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
-	 		  	  	  	  {
-	 		  	  	  		  if(cuenta==5)
-	 		  	  	  		  {
-	 		  	  	  			  cuenta=0;
-	 		  	  	  		  }
-	 		  	  	  		  else
-	 		  	  	  		  {
-	 		  	  	  			  cuenta++;
-	 		  	  	  		  }
-	 		  	  	  	  }
 
     /* USER CODE BEGIN 3 */
   }
@@ -285,9 +297,9 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.Resolution = ADC_RESOLUTION_8B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
