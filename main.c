@@ -61,6 +61,9 @@ static void MX_TIM4_Init(void);
 /* USER CODE BEGIN 0 */
 volatile int button_int=0;	//bandera de la rutina de interrupción
 int cuenta=0;	//determina en qué caso se enciende cada LED
+uint8_t lum=0;
+uint8_t up=1;
+uint32_t adcval;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -135,6 +138,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  HAL_ADC_Start(&hadc1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
@@ -146,63 +150,76 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  	  	  	  if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
-	  	  	  	  {
-	  	  	  		  if(cuenta==5)
-	  	  	  		  {
-	  	  	  			  cuenta=0;
-	  	  	  		  }
-	  	  	  		  else
-	  	  	  		  {
-	  	  	  			  cuenta++;
-	  	  	  		  }
-	  	  	  	  }
-	  	  	  	switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 ninguno, 1 verde, 2 naranja, 3 rojo, 4 azul y 5 todos.
-	  	  	  		  	  	  {
-	  	  	  		  	  	  case 0:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  	  		  break;
-	  	  	  		  	  	  case 1:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 100);
-	  	  	  		  	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  	  		  break;
-	  	  	  		  	  	  case 2:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 100);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  	  		  break;
-	  	  	  		  	  	  case 3:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		   	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  		 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 100);
-	  	  	  		  		  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	  	  		  		  	   break;
-	  	  	  		  	  	  case 4:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		   	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  		 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  		  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 100);
-	  	  	  		  	  	  		  break;
-	  	  	  		  	  	  case 5:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 90);
-	  	  	  		   	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 90);
-	  	  	  		  		 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 90);
-	  	  	  		  		  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 90);
-	  	  	  		  	  	  		  break;
-	  	  	  		  	  	  default:
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	  	  		  	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  HAL_ADC_Start(&hadc1);
+	 	  if(HAL_ADC_PollForConversion(&hadc1, 100)==HAL_OK)
+	 	  {
+	 		  adcval=(HAL_ADC_GetValue(&hadc1))/40;
+	 	  }
+	 	  HAL_ADC_Stop(&hadc1);
+	 	  if(adcval>100)
+	 	  {
+	 		  lum=0;
+	 	  }
+	 	  else
+	 	  {
+	 		  lum=100-adcval;
+	 	  }
+	 	 switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
+	 	 	  {
+	 	 			case 0:
+	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	 	 	  		  break;
+	 	 		  case 1:
+	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
+	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	 	 			  break;
+	 	 	  	  case 2:
+	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	 	 	  		  break;
+	 	 		  case 3:
+	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	 	 	  		  break;
+	 	 		case 4:
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
+	 	 				break;
+	 	 		case 5:
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
+	 	 			  	break;
+	 	 	   	  default:
+	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	 	 	  	 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	 	 	  }
+	 	if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
+	 		  	  	  	  {
+	 		  	  	  		  if(cuenta==5)
+	 		  	  	  		  {
+	 		  	  	  			  cuenta=0;
+	 		  	  	  		  }
+	 		  	  	  		  else
+	 		  	  	  		  {
+	 		  	  	  			  cuenta++;
+	 		  	  	  		  }
+	 		  	  	  	  }
 
-
-	  	  	  		  	  	  }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
