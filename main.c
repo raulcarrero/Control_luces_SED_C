@@ -40,6 +40,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
@@ -50,6 +52,7 @@ TIM_HandleTypeDef htim4;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -60,6 +63,8 @@ static void MX_TIM4_Init(void);
 volatile int button_int=0;	//bandera de la rutina de interrupción
 int cuenta = 0;	//determina en que caso se enciende cada LED
 uint32_t tiempo;
+uint16_t adcval;
+uint16_t lum = 0;
 
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
@@ -71,6 +76,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	else
 	{
 		button_int=0;
+	}
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+
+	if (hadc->Instance == ADC1){
+
+		adcval=HAL_ADC_GetValue(&hadc1) + 3906;     ///CUIDADO AQUI
 	}
 }
 
@@ -133,6 +146,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM4_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
@@ -159,7 +173,19 @@ int main(void)
 	 	  	cuenta++;
 	 	 }
      }
-	  switch(cuenta) {	//Para cada valor de cuenta se enciende el LED...: 0 ninguno, 1 verde, 2 naranja, 3 rojo, 4 azul y 5 todos.
+
+	  HAL_ADC_Start_IT(&hadc1);
+
+	  if(adcval > 3906) {
+
+		  lum = 3906;
+	  }
+	  else {
+
+		  lum = adcval + 3906;
+	  }
+
+	  switch(cuenta) {
 
 	     case 0: //No se enciende ninguno de los diodos
 		  	    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
@@ -168,34 +194,35 @@ int main(void)
 		  	  	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 		  	    break;
 		 case 1: //Se enciende el diodo LED verde
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 31250); //Se enciende 1s, se apaga 1 s
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1953); //Se enciende 0.25s, se apaga 0.25 s
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 			    break;
 		 case 2: //Se enciende el diodo LED naranja
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 31250);
+				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 1953); //31250 mitad
 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 			    break;
 		 case 3: //Se enciende el diodo LED rojo
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 31250);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1953);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 			    break;
 		 case 4: //Se enciende el diodo LED azul
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 31250);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 1953);
 			    break;
 		 case 5: //Se encienden todos los diodos
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 31250);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 31250);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 31250);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 31250);
+
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum); //31250 //
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
 			    break;
 		 case 6:
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
@@ -221,11 +248,11 @@ int main(void)
 
 			    break;
 
-		 default:
+		 /*default:
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0); */
 	   }
   }
   /* USER CODE END 3 */
@@ -260,7 +287,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV4;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV8;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
@@ -268,6 +295,56 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -292,7 +369,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 16;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 62500;
+  htim4.Init.Period = 3906;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
