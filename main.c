@@ -83,7 +83,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 	if (hadc->Instance == ADC1){
 
-		adcval=HAL_ADC_GetValue(&hadc1) + 3906;     ///CUIDADO AQUI
+		adcval=HAL_ADC_GetValue(&hadc1);
 	}
 }
 
@@ -176,13 +176,13 @@ int main(void)
 
 	  HAL_ADC_Start_IT(&hadc1);
 
-	  if(adcval > 3906) {
+	  if(adcval > 1000) {
 
 		  lum = 3906;
 	  }
 	  else {
 
-		  lum = adcval + 3906;
+		  lum = adcval;
 	  }
 
 	  switch(cuenta) {
@@ -201,7 +201,7 @@ int main(void)
 			    break;
 		 case 2: //Se enciende el diodo LED naranja
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 1953); //31250 mitad
+				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 1953);
 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 			    break;
@@ -219,7 +219,7 @@ int main(void)
 			    break;
 		 case 5: //Se encienden todos los diodos
 
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum); //31250 //
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
@@ -248,11 +248,11 @@ int main(void)
 
 			    break;
 
-		 /*default:
+		 default:
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
 			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0); */
+			    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 	   }
   }
   /* USER CODE END 3 */
