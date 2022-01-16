@@ -61,6 +61,8 @@ static void MX_TIM4_Init(void);
 /* USER CODE BEGIN 0 */
 volatile int button_int=0;	//bandera de la rutina de interrupción
 int cuenta=0;	//determina en qué caso se enciende cada LED
+int pulsador=0;
+int t;
 uint8_t lum=0;
 uint8_t up=1;
 uint32_t adcval;
@@ -75,6 +77,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	{
 		button_int=0;
 	}
+
+
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
@@ -107,6 +111,7 @@ int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_n
 				button_count=0;
 				*button_int=0;
 				return 1;
+
 			}
 		}
 	}
@@ -157,77 +162,127 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_ADC_Start_IT(&hadc1);
-	  	 	  /*if(adcval>100)
-	  	 	  {
-	  	 		  lum=0;
-	  	 	  }
-	  	 	  else
-	  	 	  {
-	  	 		  lum=100-adcval;
-	  	 	  }*/
-	  	  	  if(adcval>100)	//Acuérdate de conectar 3V a la pata de la resistencia y GND a la del LDR
-	  	  	  {
-	  	  		  lum=100;
-	  	  	  }
-	  	  	  else
-	  	  	  {
-	  	  		  lum=adcval;
-	  	  	  }
-	  	 	 switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
-	  	 	 	  {
-	  	 	 			case 0:
-	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	 	 	  		  break;
-	  	 	 		  case 1:
-	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
-	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	 	 			  break;
-	  	 	 	  	  case 2:
-	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
-	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	 	 	  		  break;
-	  	 	 		  case 3:
-	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
-	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	 	 	  		  break;
-	  	 	 		case 4:
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
-	  	 	 				break;
-	  	 	 		case 5:
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
-	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
-	  	 	 			  	break;
-	  	 	 	   	  default:
-	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	  	 	 	  	 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	  	 	 	  }
+
+
+	  /*while(pulsador==1)
+	  {
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		  for(int i=0; i<10; i++)
+		  {
+			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 90);
+			  HAL_Delay(100);
+			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+			  HAL_Delay(100);
+		  }
+		  pulsador=0;
+	  }*/
+	  if(pulsador==1)
+	  {
+		  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_7))	//El 3V en el pulsador y GND en la resistencia
+		  	  {
+
+		  		  if((HAL_GetTick()-t)>=50)
+		  		  {
+		  			  //t=HAL_GetTick();
+		  			  if(cuenta==5)
+		  			  {
+		  				  cuenta=0;
+		  			  }
+		  			  else
+		  			  {
+		  				  cuenta++;
+		  			  }
+		  		  }
+
+		  		  t=HAL_GetTick();
+		  	  }
+
+		  HAL_ADC_Start_IT(&hadc1);
+
+		  /*if(adcval>100)
+		  {
+		  	  lum=0;
+		  }
+		  else
+		  {
+		  	  lum=100-adcval;
+		  }*/
+
+		  if(adcval>100)	//Acuérdate de conectar 3V a la pata de la resistencia y GND a la del LDR
+		  {
+		  	  lum=100;
+		  }
+		  else
+		  {
+		  	  lum=adcval;
+		  }
+
+		  switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
+		  {
+		  	  case 0:
+		  	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		  	  	 	 	  		  break;
+		  	  case 1:
+		  	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
+		  	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  	  	 	 			__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		  	  	 	 			  break;
+		  	  case 2:
+		  	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+		  	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  	  	 	 	  		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		  	  	 	 	  		  break;
+		  	  case 3:
+		  	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+		  	  	 	 			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		  	  	 	 	  		  break;
+		  	  case 4:
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
+		  	  	 	 				break;
+		  	  case 5:
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, lum);
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, lum);
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
+		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
+		  	  	 	 			  	break;
+		  	  /*default:
+		  	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  	  	 	 	  	 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);*/
+		  }
+	  }
+	  else
+	  {
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	  }
+
 	  	 	if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
 	  	 		  	  	  	  {
-	  	 		  	  	  		  if(cuenta==5)
-	  	 		  	  	  		  {
-	  	 		  	  	  			  cuenta=0;
-	  	 		  	  	  		  }
-	  	 		  	  	  		  else
-	  	 		  	  	  		  {
-	  	 		  	  	  			  cuenta++;
-	  	 		  	  	  		  }
+	  	 							if(pulsador==0)
+	  	 							{
+	  	 						   	   pulsador=1;
+	  	 							}
+	  	 						  	else
+	  	 						  	{
+	  	 						   	   pulsador=0;
+	  	 						  	}
 	  	 		  	  	  	  }//*/
 
     /* USER CODE END WHILE */
@@ -413,6 +468,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
