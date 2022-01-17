@@ -251,7 +251,7 @@ int main(void)
 		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 	  }
 	  //Si el sensor detecta movimiento, se enciende el diodo LED externo durante 5s
-	  	  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3)==0)
+	  	  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3)==1)
 	  	  {
 	  		  tiempo = HAL_GetTick();
 	  		  while(HAL_GetTick() - tiempo < 5000)
