@@ -254,7 +254,7 @@ int main(void)
 	  	  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3)==1)
 	  	  {
 	  		  tiempo = HAL_GetTick();
-	  		  if(HAL_GetTick() - tiempo < 5000)
+	  		  while(HAL_GetTick() - tiempo < 5000)
 	  		  {
 	  			  //Espera de 5s no bloqueante
 	  			 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
