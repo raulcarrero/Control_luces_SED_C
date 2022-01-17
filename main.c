@@ -60,13 +60,13 @@ static void MX_TIM4_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 volatile int button_int=0;	//bandera de la rutina de interrupción
-int cuenta=0;	//determina en qué caso se enciende cada LED
-int pulsador=0;
-int t;
-uint8_t lum=0;
-uint8_t up=1;
-uint32_t adcval;
+int led_select=0;	//determina en qué caso se enciende cada LED
+int on_off=0;	//Determina el apagado y encendido de los LEDs. 1:on, 0:off.
+int t, tiempo;	//variables auxiliares para usar con HAL_GetTick()
+uint8_t lum=0;	//Define la intensidad del LED en función del valor del LDR.
+uint32_t adcval;	//Almacena el valor recogido por el ADC del LDR
 
+/*Funcióon Callback para el botón user*/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 	if (GPIO_Pin==GPIO_PIN_0)
@@ -81,6 +81,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 }
 
+/*Función callback del ADC que mide continuamente con el LDR*/
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 	if (hadc->Instance == ADC1){
 		adcval=(HAL_ADC_GetValue(&hadc1))/2;
@@ -89,7 +90,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 }
 
 
-/*Returns true when the button has been pressed after debounce period*/
+/*Función antirrebotes para el botón user y su bandera button_int*/
 int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number){
 	static uint8_t button_count=0;
 	static int counter=0;
@@ -162,45 +163,27 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-
-	  /*while(pulsador==1)
-	  {
-		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-		  for(int i=0; i<10; i++)
-		  {
-			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 90);
-			  HAL_Delay(100);
-			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-			  HAL_Delay(100);
-		  }
-		  pulsador=0;
-	  }*/
-	  if(pulsador==1)
+	  if(on_off==1)
 	  {
 		  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_7))	//El 3V en el pulsador y GND en la resistencia
 		  	  {
 
-		  		  if((HAL_GetTick()-t)>=50)
+		  		  if((HAL_GetTick()-t)>=50)	//antirrebotes del pulsador externo
 		  		  {
-		  			  //t=HAL_GetTick();
-		  			  if(cuenta==5)
+		  			  if(led_select==5)	//Seceuncia cíclica entre 0 y 5
 		  			  {
-		  				  cuenta=0;
+		  				  led_select=0;
 		  			  }
 		  			  else
 		  			  {
-		  				  cuenta++;
+		  				  led_select++;
 		  			  }
 		  		  }
 
 		  		  t=HAL_GetTick();
 		  	  }
 
-		  HAL_ADC_Start_IT(&hadc1);
+		  HAL_ADC_Start_IT(&hadc1);		//Llamada a la función del ADC
 
 		  /*if(adcval>100)
 		  {
@@ -210,7 +193,7 @@ int main(void)
 		  {
 		  	  lum=100-adcval;
 		  }*/
-
+		  //Transferimos el valor del ADC a una variable para que no exceda los límites del PWM
 		  if(adcval>100)	//Acuérdate de conectar 3V a la pata de la resistencia y GND a la del LDR
 		  {
 		  	  lum=100;
@@ -220,7 +203,7 @@ int main(void)
 		  	  lum=adcval;
 		  }
 
-		  switch(cuenta)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
+		  switch(led_select)	//Para cada valor de cuenta se enciende el LED...: 0 verde, 1 naranja, 2 rojo y 3 azul.
 		  {
 		  	  case 0:
 		  	  	 	 	  		 __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
@@ -258,11 +241,6 @@ int main(void)
 		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, lum);
 		  	  	 	 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, lum);
 		  	  	 	 			  	break;
-		  	  /*default:
-		  	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-		  	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-		  	  	 	 	  	 	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-		  	  	 	 	  	  	  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);*/
 		  }
 	  }
 	  else
@@ -272,16 +250,32 @@ int main(void)
 		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
 		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 	  }
+	  //Si el sensor detecta movimiento, se enciende el diodo LED externo durante 5s
+	  	  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3)==0)
+	  	  {
+	  		  tiempo = HAL_GetTick();
+	  		  while(HAL_GetTick() - tiempo < 5000)
+	  		  {
+	  			  //Espera de 5s no bloqueante
+	  			 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
-	  	 	if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, cuenta se incrementa hasta que llega a 5 y entonces vuelve a 0
+	  		  }
+	  	  }
+	  	  else
+	  	  {
+	  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	  	  }
+
+
+	  	 	if(debouncer(&button_int, GPIOA, GPIO_PIN_0))	//Al pulsar el botón, alterna entre 0 y 1, apagado y encendido
 	  	 		  	  	  	  {
-	  	 							if(pulsador==0)
+	  	 							if(on_off==0)
 	  	 							{
-	  	 						   	   pulsador=1;
+	  	 						   	   on_off=1;
 	  	 							}
 	  	 						  	else
 	  	 						  	{
-	  	 						   	   pulsador=0;
+	  	 						   	   on_off=0;
 	  	 						  	}
 	  	 		  	  	  	  }//*/
 
@@ -465,16 +459,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  /*Configure GPIO pins : PA3 PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
